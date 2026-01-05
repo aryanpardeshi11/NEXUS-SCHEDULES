@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard | NEXUS</title>
+    <!-- Fonts & Icons -->
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Styles -->
+    <link rel="stylesheet" href="style.css">
+    <style>
+        /* Single Screen Dashboard Layout */
+        .app-container {
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .main-content {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            padding: 2rem;
+            overflow: hidden; /* No outer scroll */
+        }
+
+        .header {
+            flex-shrink: 0;
+            margin-bottom: 2rem;
+        }
+
+        /* Stats Row - Fixed Height */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1.5rem;
+            flex-shrink: 0;
+            margin-bottom: 1.5rem;
+        }
+
+        /* Main Content Tiles - Fill remaining space */
+        .tiles-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr; /* Schedule wider than Tasks */
+            gap: 1.5rem;
+            flex: 1; /* Take remaining height */
+            min-height: 0; /* Crucial for nesting */
+        }
+
+        .tile-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            height: 100%; /* Fill the grid cell */
+        }
+
+        .tile-header {
+            padding: 1rem 1.5rem;
+            background: rgba(255, 255, 255, 0.02);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+        }
+
+        .tile-header h2 {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .tile-content {
+            flex: 1;
+            overflow-y: auto; /* Scroll INSIDE the tile */
+            padding: 0;
+        }
+
+        /* Stat Cards */
+        .stat-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .stat-info h3 { font-size: 2rem; font-weight: 700; margin: 0; line-height: 1; }
+        .stat-info p { color: var(--text-muted); font-size: 0.9rem; margin-top: 0.5rem; }
+        
+        .stat-icon {
+            width: 48px; height: 48px;
+            border-radius: 10px;
+            background: rgba(255,255,255,0.05);
+            display: flex; align-items: center; justify-content: center;
+            color: var(--primary); font-size: 1.25rem;
+        }
+
+        /* List Items */
+        .dashboard-list-item {
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+        }
+        .dashboard-list-item:last-child { border-bottom: none; }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Auth Overlay -->
+        <div id="auth-overlay" style="position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.85); backdrop-filter: blur(10px); z-index: 9999; display: none; align-items: center; justify-content: center; flex-direction: column;">
+            <div style="background: #18181b; padding: 3rem; border-radius: 24px; border: 1px solid rgba(255,255,255,0.1); text-align: center; max-width: 400px;">
+                <h1 style="margin-bottom: 1rem; font-size: 2rem; background: linear-gradient(135deg, #8b5cf6, #d946ef); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;">NEXUS</h1>
+                <p style="color: #a1a1aa; margin-bottom: 2rem;">Sign in to access your synchronized workspace.</p>
+                <button id="login-btn" onclick="loginWithGoogle()" style="width: 100%; padding: 1rem; background: white; color: black; border-radius: 12px; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 0.5rem; cursor: pointer; border: none;">
+                    <i class="fab fa-google"></i> Continue with Google
+                </button>
+            </div>
+        </div>
+
+        <!-- Sidebar Injection Point -->
+        <div id="sidebar-container"></div>
+
+        <main class="main-content">
+            <!-- Hero Section -->
+            <div class="dashboard-hero">
+                <div class="hero-content">
+                    <h1 class="hero-greeting" id="greeting">Welcome Back</h1>
+                    <div style="display: flex; gap: 1rem; align-items: center; margin-top: 0.5rem;">
+                        <p class="hero-date" id="current-date"></p>
+                        <span style="color: var(--border-color);">|</span>
+                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                            <span id="user-display" style="font-size: 0.9rem; color: var(--text-muted); padding: 2px 8px; background: rgba(255,255,255,0.05); border-radius: 4px;">Guest</span>
+                            <button id="logout-btn" onclick="logout()" style="background: transparent; border: none; color: var(--text-muted); cursor: pointer; font-size: 0.8rem; text-decoration: underline;">Logout</button>
+                        </div>
+                    </div>
+                </div>
+                <!-- Quick Focus Widget -->
+                <div class="hero-focus-card">
+                    <div class="focus-icon"><i class="fas fa-bullseye"></i></div>
+                    <div>
+                        <span style="display: block; font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted); letter-spacing: 1px;">Focus</span>
+                        <span style="font-weight: 600;">Stay Productive</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- CRM Stats Row -->
+            <div class="crm-stats-grid">
+                <!-- Task Card -->
+                <div class="crm-stat-card">
+                    <div class="stat-top">
+                        <div class="stat-icon-wrapper" style="background: rgba(139, 92, 246, 0.1); color: var(--primary);">
+                            <i class="fas fa-tasks"></i>
+                        </div>
+                        <!-- Donut Mini Chart -->
+                        <div class="donut-chart" id="task-donut" style="width: 48px; height: 48px; border-radius: 50%; background: conic-gradient(var(--primary) 0%, rgba(255,255,255,0.05) 0%); position: relative; display: flex; align-items: center; justify-content: center;">
+                            <div style="width: 38px; height: 38px; background: var(--bg-card); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.7rem; font-weight: bold; color: var(--text-muted);">
+                                <span id="task-percent">0%</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="stat-main">
+                        <h3 id="tasks-count">0</h3>
+                        <p>Pending Tasks</p>
+                    </div>
+                    <div class="stat-footer">
+                        <span style="color: var(--primary); font-size: 0.8rem;"><i class="fas fa-arrow-right"></i> View List</span>
+                    </div>
+                </div>
+
+                <!-- Events Card -->
+                <div class="crm-stat-card">
+                    <div class="stat-top">
+                        <div class="stat-icon-wrapper" style="background: rgba(59, 130, 246, 0.1); color: var(--secondary);">
+                            <i class="fas fa-calendar-day"></i>
+                        </div>
+                    </div>
+                    <div class="stat-main">
+                        <h3 id="upcoming-count">0</h3>
+                        <p>Upcoming Events</p>
+                    </div>
+                    <div class="stat-footer">
+                        <span style="color: var(--text-muted); font-size: 0.8rem;">Check Schedule</span>
+                    </div>
+                </div>
+
+                <!-- Notes Card -->
+                <div class="crm-stat-card">
+                    <div class="stat-top">
+                        <div class="stat-icon-wrapper" style="background: rgba(16, 185, 129, 0.1); color: #10b981;">
+                            <i class="fas fa-sticky-note"></i>
+                        </div>
+                    </div>
+                    <div class="stat-main">
+                        <h3 id="total-notes">0</h3>
+                        <p>Total Notes</p>
+                    </div>
+                    <div class="stat-footer">
+                        <span style="color: var(--text-muted); font-size: 0.8rem;">Access Library</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Content Tiles (Fill remaining height) -->
+            <div class="tiles-grid">
+                <!-- Schedule Tile -->
+                <div class="tile-card">
+                    <div class="tile-header" style="flex-direction: column; align-items: stretch; gap: 0.75rem;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <h2><i class="fas fa-clock" style="color: var(--primary);"></i> Today's Schedule</h2>
+                            <a href="schedule.html" style="color: var(--primary); font-size: 0.85rem; text-decoration: none;">View Full <i class="fas fa-arrow-right" style="font-size: 0.7rem;"></i></a>
+                        </div>
+                        <!-- Day Progress -->
+                        <div>
+                            <div style="height: 6px; background: rgba(255,255,255,0.05); border-radius: 3px; overflow: hidden; display: flex;">
+                                <div id="day-progress" style="width: 0%; background: linear-gradient(90deg, var(--primary), #a855f7); transition: width 1s ease-out;"></div>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; font-size: 0.7rem; color: var(--text-muted); margin-top: 4px;">
+                                <span>8:00 AM</span>
+                                <span>8:00 PM</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="dashboard-schedule" class="tile-content">
+                        <!-- JS populated items -->
+                    </div>
+                </div>
+
+            </div>
+        </main>
+    </div>
+
+    <!-- Firebase SDKs (Compat version for simplicity) -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+
+    <!-- App Scripts -->
+    <script src="scripts/firebase-config.js"></script>
+    <script src="scripts/storage.js"></script>
+    <script src="scripts/nav.js"></script>
+    <script src="scripts/auth.js"></script> <!-- Load Auth last -->
+    <script src="scripts/dashboard.js"></script>
+</body>
+</html>

@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notes | NEXUS</title>
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .notes-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .note-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.5rem;
+            min-height: 200px;
+            display: flex;
+            flex-direction: column;
+            cursor: pointer;
+            transition: var(--transition);
+            position: relative;
+        }
+
+        .note-card:hover {
+            transform: translateY(-5px);
+            border-color: var(--primary);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .note-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .note-preview {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            flex: 1;
+            overflow: hidden;
+            display: -webkit-box;
+            -webkit-line-clamp: 6;
+            line-clamp: 6;
+            -webkit-box-orient: vertical;
+        }
+
+        .note-date {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-top: 1rem;
+        }
+
+        /* Modal Editor */
+        .modal {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.8);
+            backdrop-filter: blur(5px);
+            z-index: 100;
+            display: none;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .modal.open { display: flex; }
+
+        .editor-container {
+            background: #18181b;
+            width: 80%;
+            height: 80vh;
+            border-radius: 16px;
+            border: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .editor-header {
+            padding: 1rem 2rem;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .editor-title-input {
+            background: transparent;
+            border: none;
+            color: white;
+            font-size: 1.5rem;
+            font-weight: 700;
+            width: 100%;
+            font-family: inherit;
+        }
+        .editor-title-input:focus { outline: none; }
+
+        .editor-body {
+            flex: 1;
+            padding: 2rem;
+            overflow-y: auto;
+        }
+
+        .editor-textarea {
+            width: 100%;
+            height: 100%;
+            background: transparent;
+            border: none;
+            color: var(--text-main);
+            font-size: 1rem;
+            resize: none;
+            font-family: inherit;
+            line-height: 1.6;
+        }
+        .editor-textarea:focus { outline: none; }
+
+        .editor-url-input {
+            width: 100%;
+            padding: 0.75rem;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            background: rgba(0,0,0,0.2);
+            color: white;
+            font-family: inherit;
+            font-size: 0.9rem;
+            margin-top: 0.5rem;
+        }
+        .editor-url-input:focus { outline: none; border-color: var(--primary); }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Auth Overlay -->
+        <div id="auth-overlay" style="position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.85); backdrop-filter: blur(10px); z-index: 9999; display: none; align-items: center; justify-content: center; flex-direction: column;">
+            <div style="background: #18181b; padding: 3rem; border-radius: 24px; border: 1px solid rgba(255,255,255,0.1); text-align: center; max-width: 400px;">
+                <h1 style="margin-bottom: 1rem; font-size: 2rem; background: linear-gradient(135deg, #8b5cf6, #d946ef); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;">NEXUS</h1>
+                <p style="color: #a1a1aa; margin-bottom: 2rem;">Sign in to access your synchronized workspace.</p>
+                <button id="login-btn" onclick="loginWithGoogle()" style="width: 100%; padding: 1rem; background: white; color: black; border-radius: 12px; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 0.5rem; cursor: pointer; border: none;">
+                    <i class="fab fa-google"></i> Continue with Google
+                </button>
+            </div>
+        </div>
+
+        <div id="sidebar-container"></div>
+
+        <main class="main-content">
+            <header class="header">
+                <h1 class="page-title">Notes & Resources</h1>
+                <button class="btn btn-primary" onclick="openNote()">
+                    <i class="fas fa-plus"></i> New Note
+                </button>
+            </header>
+
+            <div class="notes-grid" id="notes-root">
+                <!-- JS Populates -->
+            </div>
+        </main>
+    </div>
+
+    <!-- Editor Modal -->
+    <div class="modal" id="noteModal">
+        <div class="editor-container">
+            <div class="editor-header">
+                <input type="text" id="noteTitle" class="editor-title-input" placeholder="Untitled Note">
+                <div style="display: flex; gap: 1rem;">
+                    <span id="save-status" style="color: var(--text-muted); font-size: 0.8rem; margin-right: 0.5rem; align-self: center; font-style: italic;"></span>
+                    <button class="btn" style="background: transparent;" onclick="closeNote()">Cancel</button>
+                    <button class="btn btn-primary" onclick="saveNote()">Save</button>
+                </div>
+            </div>
+            <div class="editor-body">
+                <label for="noteUrl" style="display: block; margin-bottom: 0.5rem; color: var(--text-muted); font-size: 0.9rem;">Link to Notion/external (Optional)</label>
+                <input type="url" id="noteUrl" class="editor-url-input" placeholder="https://notion.so/..." style="margin-bottom: 1.5rem;">
+                <textarea id="noteBody" class="editor-textarea" placeholder="Start typing..."></textarea>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase SDKs (Compat version for simplicity) -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+
+    <!-- App Scripts -->
+    <script src="scripts/firebase-config.js"></script>
+    <script src="scripts/auth.js"></script>
+    <script src="scripts/storage.js"></script>
+    <script src="scripts/nav.js"></script>
+    <script src="scripts/notes.js"></script>
+</body>
+</html>

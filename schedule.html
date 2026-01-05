@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Schedule | NEXUS</title>
+    <!-- Fonts & Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Styles -->
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .timeline-container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .timeline-slot {
+            display: grid;
+            grid-template-columns: 80px 1fr;
+            gap: 1.5rem;
+            margin-bottom: 1rem;
+            position: relative;
+        }
+
+        .timeline-time {
+            text-align: right;
+            padding-top: 1rem;
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+
+        .timeline-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1rem;
+            min-height: 80px;
+            transition: var(--transition);
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .timeline-card:hover {
+            border-color: var(--primary);
+            background: rgba(139, 92, 246, 0.05);
+        }
+        
+        .timeline-card::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 4px;
+            background: var(--text-muted);
+        }
+
+        .type-class::before { background: var(--primary); }
+        .type-lab::before { background: #10b981; } /* Emerald */
+        .type-break::before { background: #f59e0b; } /* Amber */
+        .type-exam::before { background: #ef4444; } /* Red */
+
+        .timeline-card h4 {
+            margin-bottom: 0.25rem;
+            font-size: 1.1rem;
+        }
+
+        .timeline-card p {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        /* Tabs */
+        .tabs {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 1rem;
+        }
+
+        .tab-btn {
+            background: transparent;
+            color: var(--text-muted);
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .tab-btn.active {
+            background: rgba(139, 92, 246, 0.1);
+            color: var(--primary);
+        }
+
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* College Timetable Styles */
+        .tt-wrapper {
+            overflow-x: auto;
+            background: var(--bg-card);
+            border-radius: 16px;
+            border: 1px solid var(--border-color);
+            padding: 1rem;
+        }
+
+        .tt-table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 800px;
+        }
+
+        .tt-table th, .tt-table td {
+            padding: 1rem;
+            text-align: center;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .tt-table th {
+            color: var(--primary);
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.8rem;
+            letter-spacing: 1px;
+        }
+
+        .tt-table td {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        .tt-table tr:last-child td { border-bottom: none; }
+        
+        .tt-day {
+            font-weight: 700;
+            color: white !important;
+            background: rgba(255,255,255,0.02);
+            width: 100px;
+        }
+        
+        .tt-slot {
+            border-radius: 6px;
+            padding: 0.5rem;
+            background: rgba(255,255,255,0.03);
+            transition: var(--transition);
+        }
+        .tt-slot:hover {
+            background: rgba(139, 92, 246, 0.1);
+            color: white;
+        }
+        .tt-break {
+            color: #f59e0b;
+            font-style: italic;
+        }
+
+        /* Modal Styles */
+        .modal {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.7);
+            backdrop-filter: blur(5px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+            z-index: 100;
+        }
+
+        .modal.open {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        .modal-content {
+            background: #18181b;
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 2rem;
+            width: 100%;
+            max-width: 500px;
+            box-shadow: var(--shadow-lg);
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: var(--text-muted);
+        }
+
+        .form-input, .form-select {
+            width: 100%;
+            padding: 0.75rem;
+            background: #27272a;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            color: white;
+            font-family: inherit;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Auth Overlay -->
+        <div id="auth-overlay" style="position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.85); backdrop-filter: blur(10px); z-index: 9999; display: none; align-items: center; justify-content: center; flex-direction: column;">
+            <div style="background: #18181b; padding: 3rem; border-radius: 24px; border: 1px solid rgba(255,255,255,0.1); text-align: center; max-width: 400px;">
+                <h1 style="margin-bottom: 1rem; font-size: 2rem; background: linear-gradient(135deg, #8b5cf6, #d946ef); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;">NEXUS</h1>
+                <p style="color: #a1a1aa; margin-bottom: 2rem;">Sign in to access your synchronized workspace.</p>
+                <button id="login-btn" onclick="loginWithGoogle()" style="width: 100%; padding: 1rem; background: white; color: black; border-radius: 12px; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 0.5rem; cursor: pointer; border: none;">
+                    <i class="fab fa-google"></i> Continue with Google
+                </button>
+            </div>
+        </div>
+
+        <div id="sidebar-container"></div>
+
+        <main class="main-content">
+            <header class="header">
+                <h1 class="page-title">Schedule</h1>
+                <div id="tab-actions">
+                     <button class="btn btn-primary" onclick="openModal()">
+                        <i class="fas fa-plus"></i> Add Event
+                    </button>
+                </div>
+            </header>
+
+            <!-- Tabs -->
+            <div class="tabs">
+                <button class="tab-btn active" onclick="switchTab('personal')">My Daily Plan</button>
+                <button class="tab-btn" onclick="switchTab('college')">College Timetable</button>
+            </div>
+
+            <!-- Tab 1: Personal Schedule -->
+            <div id="personal-tab" class="tab-content active">
+                <div class="table-container">
+                    <table class="premium-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 50px;"></th>
+                                <th style="width: 120px;">Start Time</th>
+                                <th style="width: 120px;">End Time</th>
+                                <th>Activity</th>
+                                <th style="width: 80px;">Hrs</th>
+                                <th style="width: 60px;"></th>
+                            </tr>
+                        </thead>
+                        <tbody id="schedule-body">
+                            <!-- Populated by scripts/schedule.js -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Tab 2: College Timetable -->
+            <div id="college-tab" class="tab-content">
+                <!-- College Header -->
+                <div style="text-align: center; margin-bottom: 1.5rem; color: var(--text-main);">
+                    <h2 style="font-size: 1.5rem; color: var(--primary); margin-bottom: 0.5rem;">Dr. Vithalrao Vikhe Patil College of Engineering, Ahmednagar</h2>
+                    <h3 style="font-size: 1.1rem; color: var(--text-muted); margin-bottom: 0.25rem;">Department of First Year Engineering</h3>
+                    <div style="display: flex; justify-content: center; gap: 2rem; font-weight: 600; font-size: 1rem; margin-top: 0.5rem; color: #fff;">
+                        <span>Branch: CSD</span>
+                        <span>Class: F.E. (First Year)</span>
+                        <span>Sem: I</span>
+                        <span>Division: G</span>
+                    </div>
+                </div>
+
+                <div class="tt-wrapper">
+                    <table class="tt-table">
+                        <thead>
+                            <tr>
+                                <th>Day</th>
+                                <th>09.00 TO 10.00</th>
+                                <th>10.00 TO 11.00</th>
+                                <th>11.00 TO 12.00</th>
+                                <th>12.00 TO 01.00</th>
+                                <th>01.00 TO 02.00</th>
+                                <th>02.00 TO 03.00</th>
+                                <th>03.00 TO 04.00</th>
+                                <th>04.00 TO 05.00</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td class="tt-day">MONDAY</td>
+                                <td><div class="tt-slot"></div></td>
+                                <td><div class="tt-slot">FPL (RCP)</div></td>
+                                <td><div class="tt-slot">E-M1 (RDK)</div></td>
+                                <td class="tt-break" rowspan="6" style="vertical-align: middle; background: rgba(245, 158, 11, 0.1); color: #f59e0b;">LUNCH BREAK</td>
+                                <td><div class="tt-slot">E-Phy (PDH)</div></td>
+                                <td><div class="tt-slot">BEX (SRU)</div></td>
+                                <td colspan="2"><div class="tt-slot">EG (SKK)</div></td>
+                            </tr>
+                            <tr>
+                                <td class="tt-day">TUESDAY</td>
+                                <td><div class="tt-slot"></div></td>
+                                <td><div class="tt-slot">BEX (SRU)</div></td>
+                                <td><div class="tt-slot">EG (SKK)</div></td>
+                                <td><div class="tt-slot">FPL (RCP)</div></td>
+                                <td><div class="tt-slot">FPL (RCP)</div></td>
+                                <td><div class="tt-slot">E-Phy (PDH)</div></td>
+                                <td><div class="tt-slot">E-M1 (RDK)</div></td>
+                            </tr>
+                            <tr>
+                                <td class="tt-day">WEDNESDAY</td>
+                                <td><div class="tt-slot"></div></td>
+                                <td><div class="tt-slot">E-Phy (PDH)</div></td>
+                                <td><div class="tt-slot">E-M1 (RDK)</div></td>
+                                <td colspan="2"><div class="tt-slot">EG (SKK)</div></td>
+                                <td><div class="tt-slot">PCS (Tut)</div></td>
+                                <td><div class="tt-slot">PCS (Tut)</div></td>
+                            </tr>
+                             <tr>
+                                <td class="tt-day">THURSDAY</td>
+                                <td colspan="2"><div class="tt-slot">CCC 1 (SSD1)</div></td>
+                                <td><div class="tt-slot">BEX (SRU)</div></td>
+                                <td><div class="tt-slot">E-M1 (RDK)</div></td>
+                                <td><div class="tt-slot">EG (SKK)</div></td>
+                                <td><div class="tt-slot">Library</div></td>
+                                <td><div class="tt-slot">XXXXXXXX</div></td>
+                            </tr>
+                             <tr>
+                                <td class="tt-day">FRIDAY</td>
+                                <td><div class="tt-slot"></div></td>
+                                <td><div class="tt-slot">BEX (SRU)</div></td>
+                                <td><div class="tt-slot">E-Phy (PDH)</div></td>
+                                <td colspan="2"><div class="tt-slot">MPWS (G1, G2, G3)</div></td>
+                                <td><div class="tt-slot">E-M1 (Tut)</div></td>
+                                <td><div class="tt-slot">FPL (RCP)</div></td>
+                            </tr>
+                            <tr>
+                                <td class="tt-day">SATURDAY</td>
+                                <td><div class="tt-slot"></div></td>
+                                <td colspan="2"><div class="tt-slot">Remedial Classes /<br>Extra Classes/ Practical</div></td>
+                                <td colspan="2"><div class="tt-slot">Remedial Classes /<br>Extra Classes/ Practical</div></td>
+                                <td colspan="2"><div class="tt-slot">Extra-Curricular Activity</div></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Timetable Details Legend -->
+                <div class="tt-legend" style="margin-top: 1.5rem; display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 2rem; color: var(--text-muted); font-size: 0.9rem;">
+                    
+                    <!-- Subjects -->
+                    <div>
+                        <h4 style="color: var(--primary); margin-bottom: 0.5rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.25rem;">Subjects</h4>
+                        <style> .legend-list li { margin-bottom: 0.25rem; display: flex; justify-content: space-between; gap: 1rem; } </style>
+                        <ul class="legend-list">
+                            <li><span><strong>E-M1</strong>: Engineering Mathematics I</span></li>
+                            <li><span><strong>E-Phy</strong>: Engineering Physics</span></li>
+                            <li><span><strong>BEX</strong>: Basic Electronics Engineering</span></li>
+                            <li><span><strong>EG</strong>: Engineering Graphics</span></li>
+                            <li><span><strong>FPL</strong>: Fundamentals of Programming Language</span></li>
+                            <li><span><strong>MPWS</strong>: Manufacturing Practice Workshop</span></li>
+                            <li><span><strong>PCS</strong>: Professional Communication Skill</span></li>
+                            <li><span><strong>CCC 1</strong>: Co Curricular Course I</span></li>
+                        </ul>
+                    </div>
+
+                    <!-- Theory Teachers -->
+                    <div>
+                        <h4 style="color: var(--primary); margin-bottom: 0.5rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.25rem;">Theory Faculty</h4>
+                        <ul class="legend-list">
+                            <li><span><strong>RDK</strong>: Prof. Dr. R.D. Katkade</span></li>
+                            <li><span><strong>PDH</strong>: Prof. P.D. Hapse</span></li>
+                            <li><span><strong>SRU</strong>: Prof. Dr. S.R. Udawant</span></li>
+                            <li><span><strong>SKK</strong>: Prof. S.K. Kadu</span></li>
+                            <li><span><strong>RCP</strong>: Prof. R.C. Pachhade</span></li>
+                        </ul>
+                    </div>
+
+                    <!-- Practical Teachers & Venues -->
+                    <div>
+                        <h4 style="color: var(--primary); margin-bottom: 0.5rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.25rem;">Practical Faculty & Venue</h4>
+                        <ul class="legend-list">
+                            <li><span><strong>SSD</strong>: Prof. P.D. Hapse <em style="color:#60a5fa">(Physics Lab)</em></span></li>
+                            <li><span><strong>SRU</strong>: Prof. Dr. S.R. Udawant <em style="color:#60a5fa">(Electronics Lab)</em></span></li>
+                            <li><span><strong>SKK</strong>: Prof. S.K. Kadu <em style="color:#60a5fa">(Drawing Hall TF02)</em></span></li>
+                            <li><span><strong>RCP</strong>: Prof. R.C. Pachhade <em style="color:#60a5fa">(CCF Lab)</em></span></li>
+                            <li><span><strong>REK</strong>: Prof. D.K. Nannaware <em style="color:#60a5fa">(Workshop)</em></span></li>
+                            <li><span><strong>SSD1</strong>: Mrs. S.S. Dhonde</span></li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--border-color); text-align: center; color: var(--text-main); font-weight: 600;">
+                    Name of Class Teacher: <span style="color: var(--primary);">Prof. (Dr.) R.D. Katkade</span>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <!-- Add/Edit Modal -->
+    <div class="modal" id="eventModal">
+        <div class="modal-content">
+            <h2 style="margin-bottom: 1.5rem;">Add Personal Event</h2>
+            <form id="scheduleForm">
+                <div class="form-group">
+                    <label class="form-label">Title</label>
+                    <input type="text" name="activity" class="form-input" required placeholder="e.g. Gym, Self Study">
+                </div>
+                <div class="form-group" style="display: flex; gap: 1rem;">
+                    <div style="flex: 1;">
+                        <label class="form-label">Start Time</label>
+                        <input type="time" name="startTime" class="form-input" required>
+                    </div>
+                    <div style="flex: 1;">
+                        <label class="form-label">End Time</label>
+                        <input type="time" name="endTime" class="form-input" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Type</label>
+                    <select name="type" class="form-select">
+                         <option value="class">Study</option>
+                         <option value="lab">Project</option>
+                         <option value="break">Break</option>
+                         <option value="exam">Other</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Description</label>
+                    <input type="text" name="details" class="form-input" placeholder="e.g. Chapter 4">
+                </div>
+                <div style="display: flex; justify-content: flex-end; gap: 1rem;">
+                    <button type="button" class="btn" style="background: #3f3f46;" onclick="closeModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Firebase SDKs (Compat version for simplicity) -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+
+    <!-- App Scripts -->
+    <script src="scripts/firebase-config.js"></script>
+    <script src="scripts/auth.js"></script>
+    <script src="scripts/storage.js"></script>
+    <script src="scripts/nav.js"></script>
+    <script src="scripts/schedule.js"></script>
+</body>
+</html>
