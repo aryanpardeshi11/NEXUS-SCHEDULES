@@ -1,7 +1,4 @@
-<<<<<<< HEAD
-=======
-<!-- markdownlint-disable MD033 MD036 -->
->>>>>>> 3a9e640 (Add comprehensive README and GitHub setup documentation)
+<!-- markdownlint-disable MD003 MD033 MD036 -->
 # NEXUS Engineering Scheduler
 
 <div align="center">
@@ -12,11 +9,7 @@
 
 **A modern, cloud-synchronized productivity dashboard for engineering teams and professionals**
 
-<<<<<<< HEAD
-[Features](#features) • [Demo](#demo) • [Installation](#installation) • [Usage](#usage) • [Technologies](#technologies)
-=======
 [Features](#-features) • [Demo](#-demo) • [Installation](#-installation) • [Usage](#-usage) • [Technologies](#️-technologies)
->>>>>>> 3a9e640 (Add comprehensive README and GitHub setup documentation)
 
 </div>
 
@@ -186,11 +179,7 @@ The main dashboard provides an at-a-glance overview of your productivity metrics
 
 ## 📁 Project Structure
 
-<<<<<<< HEAD
-```
-=======
 ```text
->>>>>>> 3a9e640 (Add comprehensive README and GitHub setup documentation)
 nexus-scheduler/
 ├── index.html              # Dashboard/Home page
 ├── schedule.html           # Daily schedule view
